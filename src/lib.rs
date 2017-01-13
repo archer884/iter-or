@@ -34,15 +34,8 @@ impl<I, F> Or<I, F>
           F: FnOnce() -> <I as Iterator>::Item
 {
     fn default(&mut self) -> Option<<I as Iterator>::Item> {
-        use std::mem;
-
         match self.count {
-            0 if self.default.is_some() => {
-                let mut default = None;
-                mem::swap(&mut self.default, &mut default);
-                default.map(|f| f())
-            }
-
+            0 if self.default.is_some() => self.default.take().map(|f| f()),
             _ => None,
         }
     }
