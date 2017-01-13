@@ -73,7 +73,7 @@ mod tests {
 
     #[test]
     fn non_empty_iterator_works() {
-        let iterator = (1..4).or(|| 3);
+        let iterator = (1..4).or(|| 0);
         let vec: Vec<_> = iterator.collect();
 
         assert_eq!(&[1, 2, 3], &vec[..]);
