@@ -1,0 +1,79 @@
+pub trait OrIter
+    where Self: Iterator + Sized
+{
+    fn or<F: FnOnce() -> <Self as Iterator>::Item>(self, f: F) -> Or<Self, F>;
+}
+
+impl<I: Iterator> OrIter for I {
+    fn or<F: FnOnce() -> <Self as Iterator>::Item>(self, f: F) -> Or<Self, F> {
+        Or {
+            source: self,
+            default: Some(f),
+            count: 0,
+        }
+    }
+}
+
+pub struct Or<I, F> {
+    source: I,
+    default: Option<F>,
+    count: usize,
+}
+
+impl<I, F> Or<I, F>
+    where I: Iterator,
+          F: FnOnce() -> <I as Iterator>::Item,
+{
+    fn default(&mut self) -> Option<<I as Iterator>::Item> {
+        use std::mem;
+        
+        match self.count {
+            0 if self.default.is_some() => {
+                let mut default = None;
+                mem::swap(&mut self.default, &mut default);
+                default.map(|f| f())
+            },
+
+            _ => None,
+        }
+    }
+}
+
+impl<I, F> Iterator for Or<I, F>
+    where I: Iterator,
+          F: FnOnce() -> <I as Iterator>::Item
+{
+    type Item = <I as Iterator>::Item;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self.source.next() {
+            None => self.default(),
+            Some(item) => {
+                self.count += 1;
+                Some(item)
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::OrIter;
+    use std::iter::Empty;
+
+    #[test]
+    fn empty_iterator_works() {
+        let iterator = Empty::default().or(|| 3);
+        let vec: Vec<_> = iterator.collect();
+
+        assert_eq!(&[3], &vec[..]);
+    }
+
+    #[test]
+    fn non_empty_iterator_works() {
+        let iterator = (1..4).or(|| 3);
+        let vec: Vec<_> = iterator.collect();
+
+        assert_eq!(&[1, 2, 3], &vec[..]);
+    }
+}
