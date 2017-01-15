@@ -1,71 +1,41 @@
 #![cfg_attr(feature="clippy", feature(plugin))]
 #![cfg_attr(feature="clippy", plugin(clippy))]
 
-/// Describes a method for adapting any iterator with the `Or` adapter.
+use std::iter::{self, Chain, Once};
+
+/// Allows an iterator to produce a default value in the event it produces nothing else.
 pub trait OrIter
     where Self: Iterator + Sized
 {
-    /// Adapts an iterator using the `Or` iterator.
+    /// Causes an iterator to produce a default item if empty.
+    /// 
+    /// In the event that the source iterator produces a `None` value without first having 
+    /// produced any other value, the iterator will produce the default value supplied to 
+    /// this function. This default value will be produced once and only once.
+    fn or(mut self, item: Self::Item) -> Chain<Once<Self::Item>, Self> {
+        iter::once(self.next().unwrap_or(item)).chain(self)
+    }
+
+    /// Cause an iterator to produce a default item if empty.
     ///
     /// In the event that the source iterator produces a `None` value without first having
-    /// produced any other value, the `Or` iterator will produce a default value using the
+    /// produced any other value, the iterator will produce a default value using the
     /// provided function. This default value will be produced once and only once.
-    fn or<F: FnOnce() -> <Self as Iterator>::Item>(self, f: F) -> Or<Self, F>;
-}
-
-impl<I: Iterator> OrIter for I {
-    fn or<F: FnOnce() -> <Self as Iterator>::Item>(self, f: F) -> Or<Self, F> {
-        Or {
-            source: self,
-            default: Some(f),
-            count: 0,
-        }
+    fn or_else<F: FnOnce() -> Self::Item>(mut self, f: F) -> Chain<Once<Self::Item>, Self> {
+        iter::once(self.next().unwrap_or_else(f)).chain(self)
     }
 }
 
-pub struct Or<I, F> {
-    source: I,
-    default: Option<F>,
-    count: usize,
-}
-
-impl<I, F> Or<I, F>
-    where I: Iterator,
-          F: FnOnce() -> <I as Iterator>::Item
-{
-    fn default(&mut self) -> Option<<I as Iterator>::Item> {
-        match self.count {
-            0 if self.default.is_some() => self.default.take().map(|f| f()),
-            _ => None,
-        }
-    }
-}
-
-impl<I, F> Iterator for Or<I, F>
-    where I: Iterator,
-          F: FnOnce() -> <I as Iterator>::Item
-{
-    type Item = <I as Iterator>::Item;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        match self.source.next() {
-            None => self.default(),
-            Some(item) => {
-                self.count += 1;
-                Some(item)
-            }
-        }
-    }
-}
+impl<I: Iterator> OrIter for I { }
 
 #[cfg(test)]
 mod tests {
     use super::OrIter;
-    use std::iter::Empty;
+    use std::iter;
 
     #[test]
     fn empty_iterator_works() {
-        let iterator = Empty::default().or(|| 3);
+        let iterator = iter::empty().or_else(|| 3);
         let vec: Vec<_> = iterator.collect();
 
         assert_eq!(&[3], &vec[..]);
@@ -73,7 +43,7 @@ mod tests {
 
     #[test]
     fn non_empty_iterator_works() {
-        let iterator = (1..4).or(|| 0);
+        let iterator = (1..4).or_else(|| 0);
         let vec: Vec<_> = iterator.collect();
 
         assert_eq!(&[1, 2, 3], &vec[..]);

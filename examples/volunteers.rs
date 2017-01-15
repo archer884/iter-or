@@ -13,7 +13,7 @@ use or_iter::OrIter;
 fn main() {
     let contingent = vec!["Joe".to_string(), "Marty".to_string(), "Frank".to_string()];
     let volunteers = contingent.into_iter().filter(|soldier| is_willing(soldier));
-    let volunteers = volunteers.or(|| "Joe".to_string()); // poor Joe!
+    let volunteers = volunteers.or_else(|| "Joe".to_string()); // poor Joe!
 
     for name in volunteers {
         // only Joe appears here :(
