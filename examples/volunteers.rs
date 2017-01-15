@@ -6,9 +6,9 @@
 //! the more alert parties present simply take `n` steps back, leaving (usually) one
 //! unlucky and inattentive soul as the "volunteer."
 
-extern crate or_iter;
+extern crate iter_or;
 
-use or_iter::OrIter;
+use iter_or::IterOr;
 
 fn main() {
     let contingent = vec!["Joe".to_string(), "Marty".to_string(), "Frank".to_string()];

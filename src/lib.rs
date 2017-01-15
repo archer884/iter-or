@@ -4,7 +4,7 @@
 use std::iter::{self, Chain, Once};
 
 /// Allows an iterator to produce a default value in the event it produces nothing else.
-pub trait OrIter
+pub trait IterOr
     where Self: Iterator + Sized
 {
     /// Causes an iterator to produce a default item if empty.
@@ -26,11 +26,11 @@ pub trait OrIter
     }
 }
 
-impl<I: Iterator> OrIter for I { }
+impl<I: Iterator> IterOr for I { }
 
 #[cfg(test)]
 mod tests {
-    use super::OrIter;
+    use super::IterOr;
     use std::iter;
 
     #[test]
